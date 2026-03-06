@@ -2,14 +2,8 @@
 
 > **Author:** Durgesh  
 > **Role:** Software Engineer  
-> **Date:** March 2026  
+> **Date:** 06 March 2026  
 > **Status:** ✅ Live at [arrisone.com](https://arrisone.com)
-
----
-
-## What This Document Is
-
-This is a living document. Every time I face a technical challenge, resolve it, and learn something new — I document it here. The goal is to never solve the same problem twice and to build a personal knowledge base I can refer back to anytime.
 
 ---
 
