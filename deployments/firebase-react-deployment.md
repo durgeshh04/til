@@ -355,9 +355,9 @@ BigRock's DNS zone was tied to their hosting plan. When the hosting plan's statu
 
 | Type | Name             | Value                               | Purpose                         |
 | ---- | ---------------- | ----------------------------------- | ------------------------------- |
-| A    | @                | 199.36.158.100                      | Points root domain to Firebase  |
-| A    | www              | 199.36.158.100                      | Points www to Firebase          |
-| TXT  | @                | hosting-site=arrisone-website-ed857 | Firebase domain ownership proof |
+| A    | @                | [value from Firebase]               | Points root domain to Firebase  |
+| A    | www              | [value from Firebase]               | Points www to Firebase          |
+| TXT  | @                | [value from Firebase]               | Firebase domain ownership proof |
 | TXT  | \_acme-challenge | [value from Firebase]               | SSL certificate verification    |
 | MX   | @                | smtp.google.com                     | Company email routing           |
 
