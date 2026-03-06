@@ -18,7 +18,6 @@
 7. [Issues Faced & How I Resolved Them](#7-issues-faced--how-i-resolved-them)
 8. [Key Concepts Learned](#8-key-concepts-learned)
 9. [Commands Quick Reference](#9-commands-quick-reference)
-10. [What's Next](#10-whats-next)
 
 ---
 
@@ -111,7 +110,7 @@ Originally considered GCS + Load Balancer + CDN but rejected because:
 git init
 git add .
 git commit -m "feat: initial commit"
-git remote add origin https://github.com/ChainageX/arrisone-website-frontend.git
+git remote add origin repo-link
 git branch -M main
 git push -u origin main
 ```
@@ -342,6 +341,22 @@ Maps a domain name to an IPv4 address.
 
 Stores text data. Used for domain verification — services like Firebase say "add this TXT record to prove you own the domain."
 
+### What is a CNAME Record?
+
+Maps a domain name to another domain name (an alias). Used for `www` subdomain:
+
+- `www.arrisone.com` → `arrisone-website-ed857.web.app` (Firebase's domain)
+- Firebase then handles serving the site or redirecting to root domain
+
+### What is a Canonical URL?
+
+The canonical URL is the single chosen version of your domain that is treated as the official/main URL.
+
+- **Modern standard (what we use):** `arrisone.com` is canonical. `www.arrisone.com` redirects to it.
+- **Traditional (old way):** `www.arrisone.com` was canonical. Non-www redirected to www.
+
+Most modern companies (Stripe, Notion, Vercel) use non-www as canonical. The important thing is picking one and redirecting the other — having both work independently is bad for SEO because Google sees duplicate content.
+
 ### Why we moved from BigRock DNS to Cloudflare
 
 BigRock's DNS zone was tied to their hosting plan. When the hosting plan's status became an issue, the DNS zone stopped propagating. Rather than depending on BigRock's DNS, we moved to Cloudflare which:
@@ -353,20 +368,26 @@ BigRock's DNS zone was tied to their hosting plan. When the hosting plan's statu
 
 ### DNS Records in Cloudflare
 
-| Type | Name             | Value                               | Purpose                         |
-| ---- | ---------------- | ----------------------------------- | ------------------------------- |
-| A    | @                | [value from Firebase]               | Points root domain to Firebase  |
-| A    | www              | [value from Firebase]               | Points www to Firebase          |
-| TXT  | @                | [value from Firebase]               | Firebase domain ownership proof |
-| TXT  | \_acme-challenge | [value from Firebase]               | SSL certificate verification    |
-| MX   | @                | smtp.google.com                     | Company email routing           |
+| Type  | Name             | Value                               | Purpose                             |
+| ----- | ---------------- | ----------------------------------- | ----------------------------------- |
+| A     | @                | 199.36.158.100                      | Points root domain to Firebase      |
+| CNAME | www              | arrisone-website-ed857.web.app      | Points www to Firebase for redirect |
+| TXT   | @                | hosting-site=arrisone-website-ed857 | Firebase domain ownership proof     |
+| TXT   | \_acme-challenge | [value from Firebase]               | SSL certificate verification        |
+| MX    | @                | smtp.google.com                     | Company email routing               |
+
+### www redirect setup in Firebase
+
+Firebase → Hosting → Add custom domain → type `www.arrisone.com` → check **"Redirect <www.arrisone.com> to an existing website"** → type `arrisone.com` → Continue.
+
+This makes `www.arrisone.com` permanently redirect (301) to `arrisone.com`.
 
 ### Important: DNS only vs Proxied in Cloudflare
 
 - **Orange cloud (Proxied):** Traffic goes through Cloudflare servers. Adds DDoS protection and caching but hides origin IP.
 - **Grey cloud (DNS only):** Traffic goes directly to origin IP. Required for Firebase because Firebase needs to see the real connection to issue SSL.
 
-**Always use DNS only (grey cloud) for Firebase Hosting A records.**
+**Always use DNS only (grey cloud) for Firebase Hosting A and CNAME records.**
 
 ---
 
@@ -491,6 +512,25 @@ For phone: airplane mode on → 10 seconds → airplane mode off.
 
 ---
 
+### Issue 7: Cannot add CNAME for www — conflicts with existing A record
+
+**Error:** `An A, AAAA, or CNAME record with that host already exists`
+
+**Why it happened:** Had an A record for `www` pointing to `199.36.158.100` already. You cannot have both an A record and a CNAME record with the same name — they conflict.
+
+**How I resolved it:**
+
+1. Deleted the existing A record for `www` in Cloudflare
+2. Added a CNAME record instead:
+   - Type: `CNAME`
+   - Name: `www`
+   - Target: `arrisone-website-ed857.web.app`
+   - Proxy status: DNS only (grey)
+
+**Lesson learned:** A record and CNAME record cannot coexist on the same hostname. For `www` subdomain pointing to Firebase, always use CNAME not A record. The root domain (`@`) must use an A record since CNAME is not allowed on root domains.
+
+---
+
 ## 8. Key Concepts Learned
 
 ### DNS Propagation
@@ -515,10 +555,18 @@ A value in DNS records that tells DNS resolvers how long to cache the record bef
 - **DNS Records:** The actual mappings (A, CNAME, TXT etc.). Managed wherever your nameservers point.
 - If nameservers point to Cloudflare, you manage DNS records in Cloudflare, not BigRock.
 
-### Static vs Dynamic hosting
+### Static vs Dynamic Hosting
 
 - **Static:** Pre-built HTML/CSS/JS files served directly. No server processing. Fast, cheap, secure. Firebase Hosting, Cloudflare Pages, Netlify.
 - **Dynamic:** Server processes requests and generates responses. Needed for APIs, databases, server-side logic. Cloud Run, App Engine, EC2.
+
+### Canonical URL
+
+The single chosen version of your domain treated as the official main URL. You pick one (`arrisone.com` or `www.arrisone.com`) and redirect the other to it. Having both work independently without redirecting is bad for SEO — Google sees it as duplicate content.
+
+### www subdomain (Traditional)
+
+`www` stands for World Wide Web. In the early internet (1990s-2000s) every website used `www` as a prefix to distinguish web traffic from other services like FTP or mail. Modern companies use non-www as canonical and redirect www to it.
 
 ---
 
@@ -555,33 +603,6 @@ git push origin main
 
 ---
 
-## 10. What's Next
-
-### Immediate (next 1-3 months)
-
-- [ ] Add `www.arrisone.com` redirect to `arrisone.com`
-- [ ] Set up GCP monitoring and uptime alerts
-- [ ] Add basic tests to the React app
-- [ ] Set up GCP Secret Manager for storing secrets properly
-- [ ] Add second engineer to GitHub org when hired
-
-### When building the main product (3-6 months)
-
-- [ ] Learn Docker basics — containerize backend API
-- [ ] Deploy backend on Cloud Run
-- [ ] Set up Cloud SQL or Firestore for database
-- [ ] Set up VPC networking for private service communication
-- [ ] Learn GCP IAM properly — service accounts, roles, least privilege
-
-### Long term (6+ months)
-
-- [ ] Infrastructure as Code with Terraform
-- [ ] Proper staging environment (develop branch → staging.arrisone.com)
-- [ ] GCP Cloud Armor for DDoS protection
-- [ ] Kubernetes (GKE) only if scale demands it
-
----
-
 ## Document Template — For Future Issues
 
 When I face and resolve a new issue, I'll add it to Section 7 using this template:
@@ -602,4 +623,4 @@ When I face and resolve a new issue, I'll add it to Section 7 using this templat
 
 ---
 
-_Last updated: 06 March 2026 — Initial deployment complete_
+_Last updated: 06 March 2026 — www redirect added, full deployment complete_
